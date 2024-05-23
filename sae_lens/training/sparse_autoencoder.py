@@ -253,7 +253,7 @@ class SparseAutoencoder(HookedRootModule):
         else:
             ghost_grad_loss = 0
 
-        mse_loss = per_item_mse_loss.sum(dim=-1).mean()
+        mse_loss = per_item_mse_loss.mean()
         sparsity = self.get_sparsity_loss_term(feature_acts)
         l1_loss = (self.l1_coefficient * sparsity).mean()
         loss = mse_loss + l1_loss + ghost_grad_loss

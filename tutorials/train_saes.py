@@ -84,8 +84,7 @@ cfg = LanguageModelSAERunnerConfig(
     
     # Activation Store Parameters
     n_batches_in_buffer = 128,
-    # training_tokens = 1_000_000 * 300, # 200M tokens seems doable overnight.
-    training_tokens =  300, # 200M tokens seems doable overnight.
+    training_tokens = 1_000_000 * 300, # 200M tokens seems doable overnight.
     store_batch_size_prompts = 32,
     
     # Resampling protocol
@@ -100,10 +99,11 @@ cfg = LanguageModelSAERunnerConfig(
     # dead_feature_threshold = 1e-8,
     
     # WANDB
-    log_to_wandb = False,
+    log_to_wandb = True,
     wandb_project= "mats_sae_training_gpt2_feature_splitting_experiment",
     wandb_entity = None,
     wandb_log_frequency=100,
+    eval_every_n_wandb_logs=100000000000,
     
     # Misc
     device = "cuda",
