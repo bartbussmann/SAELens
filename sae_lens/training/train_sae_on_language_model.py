@@ -166,7 +166,8 @@ class SAETrainer:
             self.n_training_tokens += self.cfg.train_batch_size_tokens
 
             step_output = self._train_step(
-                sparse_autoencoder=self.sae, sae_in=layer_acts
+                sparse_autoencoder=self.sae, sae_in=layer_acts, base_sae = self.cfg.base_sae, 
+                reconstruct_or_error_target = self.cfg.reconstruct_or_error_target
             )
 
             if self.cfg.log_to_wandb:
@@ -236,7 +237,9 @@ class SAETrainer:
     def _train_step(
         self,
         sparse_autoencoder: SparseAutoencoder,
+        base_sae: SparseAutoencoder,
         sae_in: torch.Tensor,
+        reconstruct_or_error_target = "reconstruction",
     ) -> TrainStepOutput:
 
         sparse_autoencoder.train()
@@ -288,6 +291,17 @@ class SAETrainer:
         # Forward and Backward Passes
         # for documentation on autocasting see:
         # https://pytorch.org/tutorials/recipes/recipes/amp_recipe.html
+
+
+        with torch.no_grad():
+            _, cache = base_sae.run_with_cache(sae_in.to(sparse_autoencoder.cfg.device))
+            sae_out = cache['hook_sae_recons']
+
+            if reconstruct_or_error_target == "error":
+                y = sae_in - sae_out
+            elif reconstruct_or_error_target == "reconstruction":
+                y = sae_out
+
         with autocast_if_enabled:
             (
                 sae_out,
@@ -298,6 +312,7 @@ class SAETrainer:
                 ghost_grad_loss,
             ) = sparse_autoencoder(
                 sae_in.to(sparse_autoencoder.cfg.device),
+                y, 
                 ghost_grad_neuron_mask,
             )
 

@@ -225,7 +225,7 @@ class SparseAutoencoder(HookedRootModule):
         return sparsity
 
     def forward(
-        self, x: torch.Tensor, dead_neuron_mask: torch.Tensor | None = None
+        self, x: torch.Tensor, y: torch.Tensor | None = None, dead_neuron_mask: torch.Tensor | None = None
     ) -> ForwardOutput:
 
         feature_acts, hidden_pre = self._encode_with_hidden_pre(x)
@@ -233,7 +233,7 @@ class SparseAutoencoder(HookedRootModule):
 
         # add config for whether l2 is normalized:
         per_item_mse_loss = _per_item_mse_loss_with_target_norm(
-            sae_out, x, self.cfg.mse_loss_normalization
+            sae_out, y, self.cfg.mse_loss_normalization
         )
 
         # gate on config and training so evals is not slowed down.

@@ -2,6 +2,8 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, Literal, Optional, cast
 
+# from sae_lens.training.sparse_autoencoder import SparseAutoencoder
+
 import torch
 import wandb
 
@@ -67,6 +69,10 @@ class LanguageModelSAERunnerConfig:
     seed: int = 42
     dtype: str | torch.dtype = "torch.float32"  # type: ignore #
     prepend_bos: bool = True
+
+    # for feature splitting experiments
+    base_sae: Optional["SparseAutoencoder"] = None
+    reconstruct_or_error_target: Optional[str] = None
 
     # Performance - see compilation section of lm_runner.py for info
     autocast: bool = False  # autocast to autocast_dtype during training
