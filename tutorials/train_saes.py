@@ -1,11 +1,9 @@
-#%%
 import torch
 import os 
 import sys 
 import wandb
 
-# sys.path.append("..")
-sys.path.append("/workspace/MATS_sprint")
+sys.path.append("../../MATS_sprint")
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["WANDB__SERVICE_WAIT"] = "300"
@@ -53,7 +51,6 @@ cfg = HookedSAEConfig(
     seed=None,
     device="cuda",
 )
-print(cfg)
 sae = HookedSAE(cfg)
 sae.load_state_dict(state_dict)
 base_sae = sae
@@ -62,7 +59,6 @@ base_sae = sae
 
 
 cfg = LanguageModelSAERunnerConfig(
-
     # Data Generating Function (Model + Training Distibuion)
     model_name = "gpt2-small",
 
@@ -88,7 +84,8 @@ cfg = LanguageModelSAERunnerConfig(
     
     # Activation Store Parameters
     n_batches_in_buffer = 128,
-    training_tokens = 1_000_000 * 300, # 200M tokens seems doable overnight.
+    # training_tokens = 1_000_000 * 300, # 200M tokens seems doable overnight.
+    training_tokens =  300, # 200M tokens seems doable overnight.
     store_batch_size_prompts = 32,
     
     # Resampling protocol
@@ -103,7 +100,7 @@ cfg = LanguageModelSAERunnerConfig(
     # dead_feature_threshold = 1e-8,
     
     # WANDB
-    log_to_wandb = True,
+    log_to_wandb = False,
     wandb_project= "mats_sae_training_gpt2_feature_splitting_experiment",
     wandb_entity = None,
     wandb_log_frequency=100,
