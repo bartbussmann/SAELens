@@ -28,8 +28,10 @@ class SAETrainingRunner:
     sparse_autoencoder: SparseAutoencoder
     activations_store: ActivationsStore
 
-    def __init__(self, cfg: LanguageModelSAERunnerConfig):
+
+    def __init__(self, cfg: LanguageModelSAERunnerConfig, base_sae: SparseAutoencoder):
         self.cfg = cfg
+        self.base_sae = base_sae
 
         if self.cfg.from_pretrained_path is not None:
             (
@@ -40,6 +42,7 @@ class SAETrainingRunner:
                 self.cfg.from_pretrained_path
             )
             self.cfg = self.sparse_autoencoder.cfg
+
         else:
             loader = LMSparseAutoencoderSessionloader(self.cfg)
             self.model, self.sparse_autoencoder, self.activations_store = (
@@ -84,6 +87,7 @@ class SAETrainingRunner:
             activation_store=self.activations_store,
             save_checkpoint_fn=save_checkpoint,  # type: ignore
             cfg=self.cfg,
+            base_sae = self.base_sae
         )
 
         try:

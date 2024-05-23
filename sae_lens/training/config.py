@@ -71,7 +71,6 @@ class LanguageModelSAERunnerConfig:
     prepend_bos: bool = True
 
     # for feature splitting experiments
-    base_sae: Optional["SparseAutoencoder"] = None
     reconstruct_or_error_target: Optional[str] = None
 
     # Performance - see compilation section of lm_runner.py for info

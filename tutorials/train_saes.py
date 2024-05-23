@@ -72,7 +72,6 @@ cfg = LanguageModelSAERunnerConfig(
     dataset_path = "Skylion007/openwebtext",
     is_dataset_tokenized=False,
 
-    base_sae = base_sae,
     reconstruct_or_error_target = "reconstruction",
     
     # SAE Parameters
@@ -85,7 +84,7 @@ cfg = LanguageModelSAERunnerConfig(
     # lr_scheduler_name=None,
     train_batch_size_tokens = 4096,
     context_size = 128,
-    lr_warm_up_steps=5000,
+    lr_warm_up_steps=0,
     
     # Activation Store Parameters
     n_batches_in_buffer = 128,
@@ -117,6 +116,6 @@ cfg = LanguageModelSAERunnerConfig(
     dtype = torch.float32,
     )
 
-sparse_autoencoder = SAETrainingRunner(cfg).run()
+sparse_autoencoder = SAETrainingRunner(cfg, base_sae).run()
 
 # %%

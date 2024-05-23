@@ -65,6 +65,7 @@ class SAETrainer:
         activation_store: ActivationsStore,
         save_checkpoint_fn,  # type: ignore
         cfg: LanguageModelSAERunnerConfig,
+        base_sae: SparseAutoencoder,
     ) -> None:
 
         self.model = model
@@ -72,6 +73,7 @@ class SAETrainer:
         self.activation_store = activation_store
         self.save_checkpoint = save_checkpoint_fn
         self.cfg = cfg
+        self.base_sae = base_sae
 
         self.n_training_steps: int = 0
         self.n_training_tokens: int = 0
@@ -166,7 +168,7 @@ class SAETrainer:
             self.n_training_tokens += self.cfg.train_batch_size_tokens
 
             step_output = self._train_step(
-                sparse_autoencoder=self.sae, sae_in=layer_acts, base_sae = self.cfg.base_sae, 
+                sparse_autoencoder=self.sae, sae_in=layer_acts, base_sae = self.base_sae, 
                 reconstruct_or_error_target = self.cfg.reconstruct_or_error_target
             )
 
