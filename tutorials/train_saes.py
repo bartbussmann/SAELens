@@ -109,7 +109,7 @@ for l1_coefficient in [0.001, 0.005, 0.01][::-1]:
             # WANDB
             log_to_wandb = True,
             wandb_project= "rec_and_err",
-            wandb_entity = None,
+            wandb_entity='mats_sprint',
             wandb_log_frequency=100,
             eval_every_n_wandb_logs=100000000000,
             
