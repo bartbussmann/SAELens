@@ -1,7 +1,8 @@
 import torch
-import os 
-import sys 
+import os
+import sys
 import wandb
+from typing import Any, cast
 
 sys.path.append("../../MATS_sprint")
 
@@ -10,24 +11,19 @@ os.environ["WANDB__SERVICE_WAIT"] = "300"
 
 from sae_lens.training.config import LanguageModelSAERunnerConfig
 from sae_lens.training.lm_runner import SAETrainingRunner
-from sae_lens.training.session_loader import LMSparseAutoencoderSessionloader
-from sae_lens.training.utils import BackwardsCompatiblePickleClass
-from transformer_lens import HookedSAE, HookedSAEConfig
 from sae_lens import SparseAutoencoder
 
-# base_sae = SparseAutoencoder.from_pretrained(
-#     release = "jbloom/mats_sae_training_gpt2_feature_splitting_experiment/sparse_autoencoder_gpt2-small", # see other options in sae_lens/pretrained_saes.yaml
-#     sae_id = "blocks.8.hook_resid_pre_768:v0" # won't always be a hook point
-# )
 
-# base_path = "jbloom/mats_sae_training_gpt2_feature_splitting_experiment/sparse_autoencoder_gpt2-small_blocks.8.hook_resid_pre_768:v0"
-
-from pathlib import Path
-def folder_to_file(folder):
-    folder = Path(folder)
-    files = list(folder.glob("*"))
-    files = [str(f) for f in files]
-    return files[0] if len(files) == 1 else files
+def get_base_sae(wandb_run):
+    artifact = wandb_run.use_artifact(
+        f"jbloom/mats_sae_training_gpt2_feature_splitting_experiment/sparse_autoencoder_gpt2-small_blocks.8.hook_resid_pre_{2**0 * 768}:v9",
+        type="model",
+    )
+    artifact_dir = artifact.download()
+    model_file = os.listdir(artifact_dir)[0]
+    return SparseAutoencoder.load_from_pretrained_legacy(
+        os.path.join(artifact_dir, model_file)
+    )
 
 
 for l1_coefficient in [0.001, 0.005, 0.01][::-1]:
@@ -38,63 +34,29 @@ for l1_coefficient in [0.001, 0.005, 0.01][::-1]:
         else:
             expansion_factor = 2
 
-        run = wandb.init(project="rec_and_err")
-
-        n = 0
-        artifact = run.use_artifact(
-            f"jbloom/mats_sae_training_gpt2_feature_splitting_experiment/sparse_autoencoder_gpt2-small_blocks.8.hook_resid_pre_{2**n * 768}:v9",
-            type="model",
-        )
-        artifact_dir = artifact.download()
-        file = folder_to_file(artifact_dir)
-        blob = torch.load(file, pickle_module=BackwardsCompatiblePickleClass)
-        config_dict = blob["cfg"].__dict__
-        state_dict = blob["state_dict"]
-        cfg = HookedSAEConfig(
-            d_sae=config_dict["d_sae"],
-            d_in=config_dict["d_in"],
-            hook_name=config_dict["hook_point"],
-            use_error_term=True,
-            dtype=torch.float32,
-            seed=None,
-            device="cuda",
-        )
-        sae = HookedSAE(cfg)
-        sae.load_state_dict(state_dict)
-        base_sae = sae
-        # model, base_sae, activations_store = LMSparseAutoencoderSessionloader.load_pretrained_sae("/workspace/config.yaml")
-
-
-
-        b_cfg = LanguageModelSAERunnerConfig(
+        cfg = LanguageModelSAERunnerConfig(
             # Data Generating Function (Model + Training Distibuion)
-            model_name = "gpt2-small",
-
-            hook_point = f"blocks.8.hook_resid_pre",
-            hook_point_layer = 8,
-            d_in = 768,
-            dataset_path = "Skylion007/openwebtext",
+            model_name="gpt2-small",
+            hook_point=f"blocks.8.hook_resid_pre",
+            hook_point_layer=8,
+            d_in=768,
+            dataset_path="Skylion007/openwebtext",
             is_dataset_tokenized=False,
-
-            reconstruct_or_error_target = task,
-            
+            reconstruct_or_error_target=task,
             # SAE Parameters
-            expansion_factor = expansion_factor, # determines the dimension of the SAE.
-            b_dec_init_method = "geometric_median",
-            
+            expansion_factor=expansion_factor,  # determines the dimension of the SAE.
+            b_dec_init_method="geometric_median",
             # Training Parameters
-            lr = 0.0004,
-            l1_coefficient = l1_coefficient,
+            lr=0.0004,
+            l1_coefficient=l1_coefficient,
             lr_scheduler_name="cosineannealing",
-            train_batch_size_tokens = 4096,
-            context_size = 128,
+            train_batch_size_tokens=4096,
+            context_size=128,
             lr_warm_up_steps=0,
-            
             # Activation Store Parameters
-            n_batches_in_buffer = 128,
-            training_tokens = 1_000_000 * 300, # 200M tokens seems doable overnight.
-            store_batch_size_prompts = 32,
-            
+            n_batches_in_buffer=128,
+            training_tokens=1_000_000 * 3000,  # 200M tokens seems doable overnight.
+            store_batch_size_prompts=32,
             # Resampling protocol
             # feature_sampling_method = 'anthropic',
             use_ghost_grads=False,
@@ -105,26 +67,31 @@ for l1_coefficient in [0.001, 0.005, 0.01][::-1]:
             # dead_feature_window=5000,
             # dead_feature_window=50000,
             # dead_feature_threshold = 1e-8,
-            
             # WANDB
-            log_to_wandb = True,
-            wandb_project= "rec_and_err",
-            wandb_entity='mats_sprint',
+            log_to_wandb=True,
+            wandb_project="test",
+            wandb_entity="mats-sprint",
             wandb_log_frequency=100,
             eval_every_n_wandb_logs=100000000000,
-            
             # Misc
-            device = "cuda",
-            seed = 42,
-            n_checkpoints = 10,
-            checkpoint_path = "checkpoints",
-            dtype = torch.float32,
-            )
+            device="cuda",
+            seed=42,
+            n_checkpoints=10,
+            checkpoint_path="checkpoints",
+            dtype=torch.float32,
+        )
+
+        run = wandb.init(
+            entity=cfg.wandb_entity,
+            project=cfg.wandb_project,
+            config=cast(Any, cfg),
+            name=cfg.run_name,
+            id=cfg.wandb_id,
+        )
+
+        base_sae = get_base_sae(run)
 
         try:
-            sparse_autoencoder = SAETrainingRunner(b_cfg, base_sae).run()
-        except:
-            pass
-
-
-# %%
+            sparse_autoencoder = SAETrainingRunner(cfg, base_sae).run()
+        except Exception as e:
+            print(e)
