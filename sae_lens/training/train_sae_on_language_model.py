@@ -296,13 +296,15 @@ class SAETrainer:
 
 
         with torch.no_grad():
-            _, cache = base_sae.run_with_cache(sae_in.to(sparse_autoencoder.cfg.device))
-            sae_out = cache['hook_sae_recons']
 
             if reconstruct_or_error_target == "error":
+                sae_out = base_sae(sae_in.to(sparse_autoencoder.cfg.device), sae_in.to(sparse_autoencoder.cfg.device)).sae_out
                 y = sae_in - sae_out
             elif reconstruct_or_error_target == "reconstruction":
+                sae_out = base_sae(sae_in.to(sparse_autoencoder.cfg.device), sae_in.to(sparse_autoencoder.cfg.device)).sae_out
                 y = sae_out
+            elif reconstruct_or_error_target == "classic":
+                y = sae_in
 
         with autocast_if_enabled:
             (

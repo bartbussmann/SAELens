@@ -5,6 +5,8 @@ import wandb
 from typing import Any, cast
 
 sys.path.append("../../MATS_sprint")
+sys.path.append("/workspace/SAELens")
+
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["WANDB__SERVICE_WAIT"] = "300"
@@ -25,22 +27,26 @@ def get_base_sae(wandb_run):
         os.path.join(artifact_dir, model_file)
     )
 
+model_name = "pythia-410m-deduped"
+if model_name == "gpt2-small":
+    d_in = 768
+    dataset_path = "Skylion007/openwebtext"
+elif model_name == "pythia-410m-deduped":
+    d_in = 1024
+    dataset_path = "EleutherAI/the_pile_deduplicated"
 
-for l1_coefficient in [0.001, 0.005, 0.01][::-1]:
-    for task in ["error", "reconstruction"]:
+for l1_coefficient in [0.001]:
+    for task in ["classic"]:
 
-        if task == "error":
-            expansion_factor = 1
-        else:
-            expansion_factor = 2
+        expansion_factor = 16
 
         cfg = LanguageModelSAERunnerConfig(
             # Data Generating Function (Model + Training Distibuion)
-            model_name="gpt2-small",
-            hook_point=f"blocks.8.hook_resid_pre",
-            hook_point_layer=8,
-            d_in=768,
-            dataset_path="Skylion007/openwebtext",
+            model_name=model_name,
+            hook_point=f"blocks.3.hook_resid_pre",
+            hook_point_layer=3,
+            d_in=d_in,
+            dataset_path=dataset_path,
             is_dataset_tokenized=False,
             reconstruct_or_error_target=task,
             # SAE Parameters
@@ -55,18 +61,18 @@ for l1_coefficient in [0.001, 0.005, 0.01][::-1]:
             lr_warm_up_steps=0,
             # Activation Store Parameters
             n_batches_in_buffer=128,
-            training_tokens=1_000_000 * 3000,  # 200M tokens seems doable overnight.
+            training_tokens=1_000_000 * 300,  # 200M tokens seems doable overnight.
             store_batch_size_prompts=32,
             # Resampling protocol
             # feature_sampling_method = 'anthropic',
-            use_ghost_grads=False,
+            use_ghost_grads=True,
             # feature_sampling_method = None,
             # feature_sampling_window = 1000,
             # feature_reinit_scale = 0.2,
             # resample_batches=1028,
             # dead_feature_window=5000,
             # dead_feature_window=50000,
-            # dead_feature_threshold = 1e-8,
+            dead_feature_threshold = 1e-7,
             # WANDB
             log_to_wandb=True,
             wandb_project="test",
@@ -91,7 +97,4 @@ for l1_coefficient in [0.001, 0.005, 0.01][::-1]:
 
         base_sae = get_base_sae(run)
 
-        try:
-            sparse_autoencoder = SAETrainingRunner(cfg, base_sae).run()
-        except Exception as e:
-            print(e)
+        sparse_autoencoder = SAETrainingRunner(cfg, base_sae).run()
